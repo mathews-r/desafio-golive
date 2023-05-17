@@ -8,3 +8,8 @@ pandas
 
 # python3 -m venv .venv && source .venv/bin/activate
 # python3 -m pip install -r requirements.txt
+
+        # tabela = pd.read_excel("excel/testando.xlsx")
+        # tabela.to_excel(
+        #     "excel/Diário_Oficial_Cidade_RJ_20230517.xlsx", index=False
+        # )
