@@ -5,11 +5,12 @@ parsel==1.7.0
 selenium
 pypdf2
 pandas
+scraperwiki
 
 # python3 -m venv .venv && source .venv/bin/activate
 # python3 -m pip install -r requirements.txt
 
-        # tabela = pd.read_excel("excel/testando.xlsx")
+        # tabela = pd.read_excel("excel/Diário_Oficial_Cidade_RJ.xlsx")
         # tabela.to_excel(
         #     "excel/Diário_Oficial_Cidade_RJ_20230517.xlsx", index=False
         # )
