@@ -1,20 +1,39 @@
 import os
 import pandas as pd
+import json
 from time import sleep
+from PyPDF2 import PdfReader
 from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
-from PyPDF2 import PdfReader
+
+from bs4 import BeautifulSoup
+
+import io
+import pdfminer
+from pdfminer.converter import HTMLConverter
+from pdfminer.layout import LAParams
+from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
+from pdfminer.pdfpage import PDFPage
+
+import json
+from pdfminer.converter import TextConverter
 
 
-date_excel = f"{datetime.today():%Y%m%d}"
-date_pdf = f"{datetime.today():%Y-%m-%d}"
-PATH_FILE = f"./oficial_diare/rio_de_janeiro_{date_pdf}_completo.pdf"
-URL = "https://doweb.rio.rj.gov.br/"
+# Dados comuns
+common_data = {
+    "date_excel": f"{datetime.today():%Y%m%d}",
+    "date_pdf": f"{datetime.today():%Y-%m-%d}",
+    "URL": "https://doweb.rio.rj.gov.br/",
+}
+
+PATH_FILE = (
+    f"./oficial_diare/rio_de_janeiro_{common_data['date_pdf']}_completo.pdf"
+)
 
 
-def get_oficial_diare():
+def get_oficial_diare() -> None:
     # Diretório para download do arquivo
     download_dir = (
         f"{os.path.dirname(os.path.realpath(__file__))}/oficial_diare"
@@ -32,65 +51,77 @@ def get_oficial_diare():
         },
     )
 
-    # Instancia o browser
+    # Instancia o navegador
     browser = webdriver.Chrome(options=options)
-    browser.get(URL)
+    browser.get(common_data["URL"])
 
     browser.find_element(By.ID, "imagemCapa").click()
 
     # Tempo que o browser fica aberto (em segundos)
-    sleep(5)
+    sleep(4)
 
 
 def read_pdf(path_file) -> None:
-    get_oficial_diare()
+    # get_oficial_diare()
 
     # Faz a leitura do PDF
     pdf = PdfReader(path_file)
     number_of_pages = len(pdf.pages)
+    teste = pdf.pages[3].extract_text()
+    mathews = dict(teste)
+    print(mathews)
 
-    print(pdf.metadata.creation_date)
 
-    topics_list = []
+def pdf_to_html(pdf_path, html_path):
+    # Criar um arquivo de saída HTML
+    with open(html_path, "wb") as html_file:
+        # Configurar o conversor HTML
+        resource_manager = PDFResourceManager()
+        codec = "utf-8"
+        laparams = LAParams()
+        converter = HTMLConverter(
+            resource_manager, html_file, codec=codec, laparams=laparams
+        )
 
-    # Percorre as páginas, extrai os textos e transforma em um array
-    for page in range(number_of_pages):
-        content = pdf.pages[page].extract_text()
-        data = content.split("\n")
+        # Abrir o arquivo PDF de entrada
+        with open(pdf_path, "rb") as pdf_file:
+            # Configurar o interpretador PDF
+            interpreter = PDFPageInterpreter(resource_manager, converter)
 
-        # Percorre a nova lista, verifica se esta em Uppercase e adiciona
-        #  o novo dict no array topic_list
-        for topics in data:
-            if topics.isupper():
-                topic_dict = {f"{page + 1}": topics}
-                topics_list.append(topic_dict)
-
-    # Filtra o resultado e pega somente os valores que foram duplicados
-    filter_repeated(topics_list)
+            # Converter cada página do PDF para HTML
+            for page in PDFPage.get_pages(pdf_file):
+                interpreter.process_page(page)
 
 
 # 2 - {'atos': 1, 'do': 1, 'prefeito': 1}
 
 
-def filter_repeated(list_dicts) -> None:
-    ocurrences = {}
-    repeated_values = []
-
-    for dicts in list_dicts:
-        for value in dicts.values():
-            if value in ocurrences:
-                if ocurrences[value] == 1:
-                    repeated_values.append({f"{list(dicts.keys())[0]}": value})
-                ocurrences[value] += 1
-            else:
-                ocurrences[value] = 1
-    with open("./excel/pdf_text.txt", "a", encoding="utf-8") as txt_file:
-        txt_file.write(str(repeated_values))
-    tabela = pd.read_excel(f"excel/Diário_Oficial_Cidade_RJ_{date_excel}.xlsx")
-    tabela.to_excel(
-        f"excel/Diário_Oficial_Cidade_RJ_{date_excel}.xlsx", index=False
-    )
+# tabela = pd.read_excel(
+#     f"excel/Diário_Oficial_Cidade_RJ_{common_data['date_excel']}.xlsx"
+# )
+# tabela.to_excel(
+#     f"excel/Diário_Oficial_Cidade_RJ_{common_data['date_excel']}.xlsx",
+#     index=False,
+# )
 
 
-# Exemplo de uso
-read_pdf(PATH_FILE)
+def get_topics(html_path):
+    with open(html_path, "r") as file:
+        conteudo_html = file.read()
+
+    soup = BeautifulSoup(conteudo_html, "html.parser")
+
+    # topics = soup.find_all(
+    #     "span", {"style": "font-family: Arial-BoldMT; font-size:14px"}, "a"
+    # )
+    topics = soup.find_all("a")
+
+    for i in topics:
+        print(i.text)
+        # with open("./excel/pdf_text.txt", "a", encoding="utf-8") as txt_file:
+        #     txt_file.write(i.text)
+
+
+get_topics("resultado.html")
+
+# read_pdf(PATH_FILE)
