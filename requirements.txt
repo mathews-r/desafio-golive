@@ -2,11 +2,9 @@ black==23.1.0
 flake8==6.0.0
 requests
 beautifulsoup4
-parsel==1.7.0
 selenium
 pypdf2
 pandas
-scraperwiki
 
 # python3 -m venv .venv && source .venv/bin/activate
 # python3 -m pip install -r requirements.txt

@@ -1,24 +1,21 @@
 import os
-import pandas as pd
-import json
+
+# import pandas as pd
 from time import sleep
-from PyPDF2 import PdfReader
 from datetime import datetime
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
 
-from bs4 import BeautifulSoup
-
-import io
-import pdfminer
+# Importações para trabalhar com PDF
+from PyPDF2 import PdfReader, PdfWriter
 from pdfminer.converter import HTMLConverter
 from pdfminer.layout import LAParams
 from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
 from pdfminer.pdfpage import PDFPage
 
-import json
-from pdfminer.converter import TextConverter
+# Importações para trabalhar com o scraping
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from bs4 import BeautifulSoup
 
 
 # Dados comuns
@@ -26,9 +23,10 @@ common_data = {
     "date_excel": f"{datetime.today():%Y%m%d}",
     "date_pdf": f"{datetime.today():%Y-%m-%d}",
     "URL": "https://doweb.rio.rj.gov.br/",
+    "HTML_FILE": "./oficial_diare/pdf-to-html.html",
 }
 
-PATH_FILE = (
+PDF_FILE = (
     f"./oficial_diare/rio_de_janeiro_{common_data['date_pdf']}_completo.pdf"
 )
 
@@ -61,17 +59,6 @@ def get_oficial_diare() -> None:
     sleep(4)
 
 
-def read_pdf(path_file) -> None:
-    # get_oficial_diare()
-
-    # Faz a leitura do PDF
-    pdf = PdfReader(path_file)
-    number_of_pages = len(pdf.pages)
-    teste = pdf.pages[3].extract_text()
-    mathews = dict(teste)
-    print(mathews)
-
-
 def pdf_to_html(pdf_path, html_path):
     # Criar um arquivo de saída HTML
     with open(html_path, "wb") as html_file:
@@ -95,7 +82,6 @@ def pdf_to_html(pdf_path, html_path):
 
 # 2 - {'atos': 1, 'do': 1, 'prefeito': 1}
 
-
 # tabela = pd.read_excel(
 #     f"excel/Diário_Oficial_Cidade_RJ_{common_data['date_excel']}.xlsx"
 # )
@@ -111,17 +97,70 @@ def get_topics(html_path):
 
     soup = BeautifulSoup(conteudo_html, "html.parser")
 
-    # topics = soup.find_all(
-    #     "span", {"style": "font-family: Arial-BoldMT; font-size:14px"}, "a"
-    # )
-    topics = soup.find_all("a")
+    # Busca todos os topicos da página
+    topics = soup.find_all(
+        "span", {"style": "font-family: Arial-BoldMT; font-size:14px"}
+    )
 
-    for i in topics:
-        print(i.text)
-        # with open("./excel/pdf_text.txt", "a", encoding="utf-8") as txt_file:
-        #     txt_file.write(i.text)
+    # Busca o número da página
+    page = soup.find(
+        "span",
+        {"style": "font-family: Arial-BoldMT; font-size:12px"},
+    )
+
+    # Percorre a lista de tópicos e retorna um dicionário no padrão
+
+    topic_dict = {}
+    topic_list = []
+    for topic in topics:
+        topic_list.append(topic.text.rstrip())
+        topic_dict[page.text.rstrip()] = topic_list
+    return topic_dict
 
 
-get_topics("resultado.html")
+# --------------------------------------------------------------
 
-# read_pdf(PATH_FILE)
+
+def dismember_pdf(pdf_file):
+    file_base_name = PDF_FILE.replace(".pdf", "")
+    output_dir = os.path.join(os.getcwd())
+
+    pdf = PdfReader(pdf_file)
+
+    # Percorre todas as páginas do pdf reescreve cada uma em um arquivo
+    # separado e salva na pasta output_dir
+    for page_num in range(len(pdf.pages)):
+        pdfWriter = PdfWriter()
+        pdfWriter.add_page(pdf.pages[page_num])
+
+        with open(
+            os.path.join(
+                output_dir,
+                "{0}_page{1}.pdf".format(file_base_name, page_num + 1),
+            ),
+            "wb",
+        ) as file_pdf:
+            pdfWriter.write(file_pdf)
+            file_pdf.close()
+
+        # Chama a função para converter cada página de PDF para HTML
+        pdf_to_html(
+            os.path.join(
+                output_dir,
+                "{0}_page{1}.pdf".format(file_base_name, page_num + 1),
+            ),
+            "{0}_page{1}.html".format(file_base_name, page_num + 1),
+        )
+
+        # Salva em uma lista todos os dicionários contendo os tópicos
+        # de cada página
+        topics = []
+        topics.append(
+            get_topics("{0}_page{1}.html".format(file_base_name, page_num + 1))
+        )
+        with open("./excel/pdf_text.txt", "a", encoding="utf-8") as txt_file:
+            txt_file.write(str(topics))
+        print("Script finalizado")
+
+
+dismember_pdf(PDF_FILE)
