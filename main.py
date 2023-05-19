@@ -23,7 +23,6 @@ common_data = {
     "date_excel": f"{datetime.today():%Y%m%d}",
     "date_pdf": f"{datetime.today():%Y-%m-%d}",
     "URL": "https://doweb.rio.rj.gov.br/",
-    "HTML_FILE": "./oficial_diare/pdf-to-html.html",
 }
 
 PDF_FILE = (
@@ -58,8 +57,10 @@ def get_oficial_diare() -> None:
     # Tempo que o browser fica aberto (em segundos)
     sleep(4)
 
+    return dismember_pdf(PDF_FILE)
 
-def pdf_to_html(pdf_path, html_path):
+
+def pdf_to_html(pdf_path, html_path) -> None:
     # Criar um arquivo de saída HTML
     with open(html_path, "wb") as html_file:
         # Configurar o conversor HTML
@@ -78,6 +79,7 @@ def pdf_to_html(pdf_path, html_path):
             # Converter cada página do PDF para HTML
             for page in PDFPage.get_pages(pdf_file):
                 interpreter.process_page(page)
+    os.remove(pdf_path)
 
 
 # 2 - {'atos': 1, 'do': 1, 'prefeito': 1}
@@ -111,10 +113,13 @@ def get_topics(html_path):
     # Percorre a lista de tópicos e retorna um dicionário no padrão
 
     topic_dict = {}
-    topic_list = []
+
     for topic in topics:
+        topic_list = []
         topic_list.append(topic.text.rstrip())
         topic_dict[page.text.rstrip()] = topic_list
+
+    os.remove(html_path)
     return topic_dict
 
 
@@ -129,6 +134,8 @@ def dismember_pdf(pdf_file):
 
     # Percorre todas as páginas do pdf reescreve cada uma em um arquivo
     # separado e salva na pasta output_dir
+    topics = []
+
     for page_num in range(len(pdf.pages)):
         pdfWriter = PdfWriter()
         pdfWriter.add_page(pdf.pages[page_num])
@@ -154,13 +161,16 @@ def dismember_pdf(pdf_file):
 
         # Salva em uma lista todos os dicionários contendo os tópicos
         # de cada página
-        topics = []
         topics.append(
             get_topics("{0}_page{1}.html".format(file_base_name, page_num + 1))
         )
-        with open("./excel/pdf_text.txt", "a", encoding="utf-8") as txt_file:
+
+        with open("./excel/pdf_text.txt", "w", encoding="utf-8") as txt_file:
             txt_file.write(str(topics))
-        print("Script finalizado")
+        print(f"Extraindo dados da página {page_num} por favor aguarde.")
+
+    print("Script finalizado!")
+    return topics
 
 
-dismember_pdf(PDF_FILE)
+get_oficial_diare()
