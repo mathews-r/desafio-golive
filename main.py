@@ -40,6 +40,10 @@ def get_oficial_diare_data() -> list:
 
     # Altera o diretório de download padrão
     options = Options()
+    options.add_argument('--ignore-certificate-errors')
+    options.add_argument('--ignore-ssl-errors=yes')
+    options.add_argument('--start-maximized')
+
     options.add_experimental_option(
         "prefs",
         {
@@ -51,7 +55,7 @@ def get_oficial_diare_data() -> list:
     )
 
     # Instancia o navegador
-    browser = webdriver.Chrome(options=options)
+    browser = webdriver.Remote("http://localhost:4444/wd/hub", options=options)
     browser.get(common_data["URL"])
 
     browser.find_element(By.ID, "imagemCapa").click()
