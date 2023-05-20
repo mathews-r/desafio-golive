@@ -1,12 +1,11 @@
-black==23.1.0
-flake8==6.0.0
-requests
-beautifulsoup4
-selenium
-pypdf2
+black
+flake8
 pandas
+pypdf2
+pdfminer
+selenium
+beautifulsoup4
+pytest
 
 # python3 -m venv .venv && source .venv/bin/activate
 # python3 -m pip install -r requirements.txt
-
-# <a name="1">Page 1</a>

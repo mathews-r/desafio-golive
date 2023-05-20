@@ -23,19 +23,20 @@ common_data = {
     "date_excel": f"{datetime.today():%Y%m%d}",
     "date_pdf": f"{datetime.today():%Y-%m-%d}",
     "URL": "https://doweb.rio.rj.gov.br/",
+    "EXCEL_FILE": "data_excel/Diário_Oficial_Cidade_RJ.xlsx",
 }
 
 PDF_FILE = (
     f"./oficial_diare/rio_de_janeiro_{common_data['date_pdf']}_completo.pdf"
 )
-EXCEL_FILE = f"excel/Diário_Oficial_Cidade_RJ_{common_data['date_excel']}.xlsx"
+EXCEL_FILE_OUTPUT = (
+    f"data_excel/Diário_Oficial_Cidade_RJ_{common_data['date_excel']}.xlsx"
+)
 
 
-def get_oficial_diare():
+def get_oficial_diare_data() -> list:
     # Diretório para download do arquivo
-    download_dir = (
-        f"{os.path.dirname(os.path.realpath(__file__))}/oficial_diare"
-    )
+    download_dir = f"{os.getcwd()}/oficial_diare"
 
     # Altera o diretório de download padrão
     options = Options()
@@ -62,9 +63,8 @@ def get_oficial_diare():
 
 
 def pdf_to_html(pdf_path, html_path) -> None:
-    # Criar um arquivo de saída HTML
+    # Cria um arquivo HTML com configurações padrões
     with open(html_path, "wb") as html_file:
-        # Configurar o conversor HTML
         resource_manager = PDFResourceManager()
         codec = "utf-8"
         laparams = LAParams()
@@ -72,21 +72,17 @@ def pdf_to_html(pdf_path, html_path) -> None:
             resource_manager, html_file, codec=codec, laparams=laparams
         )
 
-        # Abrir o arquivo PDF de entrada
         with open(pdf_path, "rb") as pdf_file:
-            # Configurar o interpretador PDF
             interpreter = PDFPageInterpreter(resource_manager, converter)
 
-            # Converter cada página do PDF para HTML
+            # Converte cada página do PDF para HTML
             for page in PDFPage.get_pages(pdf_file):
                 interpreter.process_page(page)
+
     os.remove(pdf_path)
 
 
-# 2 - {'atos': 1, 'do': 1, 'prefeito': 1}
-
-
-def get_topics(html_path):
+def get_topics(html_path, page_num) -> dict:
     with open(html_path, "r") as file:
         conteudo_html = file.read()
 
@@ -97,39 +93,29 @@ def get_topics(html_path):
         "span", {"style": "font-family: Arial-BoldMT; font-size:14px"}
     )
 
-    # Busca o número da página
-    page = soup.find(
-        "span",
-        {"style": "font-family: Arial-BoldMT; font-size:12px"},
-    )
-
     # Percorre a lista de tópicos e retorna um dicionário no padrão
-
+    # {"página": [Tópico]}
     topic_dict = {}
     topic_list = []
 
     for topic in topics:
-        if topics != []:
-            topic_list.append(topic.text.rstrip())
-            topic_dict[page.text.rstrip()] = topic_list
+        topic_list.append(topic.text.rstrip())
+        topic_dict[page_num] = topic_list
 
     os.remove(html_path)
     return topic_dict
 
 
-# --------------------------------------------------------------
-
-
-def dismember_pdf(pdf_file):
-    file_base_name = PDF_FILE.replace(".pdf", "")
+def dismember_pdf(pdf_file) -> list:
+    file_name = PDF_FILE.replace(".pdf", "")
     output_dir = os.path.join(os.getcwd())
 
     pdf = PdfReader(pdf_file)
 
-    # Percorre todas as páginas do pdf reescreve cada uma em um arquivo
-    # separado e salva na pasta output_dir
     topics = []
 
+    # Percorre todas as páginas do pdf reescreve cada uma em um arquivo
+    # separado e salva na pasta output_dir
     for page_num in range(len(pdf.pages)):
         pdfWriter = PdfWriter()
         pdfWriter.add_page(pdf.pages[page_num])
@@ -137,7 +123,7 @@ def dismember_pdf(pdf_file):
         with open(
             os.path.join(
                 output_dir,
-                "{0}_page{1}.pdf".format(file_base_name, page_num + 1),
+                "{0}_page{1}.pdf".format(file_name, page_num + 1),
             ),
             "wb",
         ) as file_pdf:
@@ -148,27 +134,48 @@ def dismember_pdf(pdf_file):
         pdf_to_html(
             os.path.join(
                 output_dir,
-                "{0}_page{1}.pdf".format(file_base_name, page_num + 1),
+                "{0}_page{1}.pdf".format(file_name, page_num + 1),
             ),
-            "{0}_page{1}.html".format(file_base_name, page_num + 1),
+            "{0}_page{1}.html".format(file_name, page_num + 1),
         )
 
         # Salva em uma lista todos os dicionários contendo os tópicos
-        # de cada página
+        # de cada página. No padrão {"pagina": [Tópicos]}
+
         topics.append(
-            get_topics("{0}_page{1}.html".format(file_base_name, page_num + 1))
+            get_topics(
+                "{0}_page{1}.html".format(file_name, page_num + 1),
+                page_num + 1,
+            )
         )
 
         print(f"Extraindo dados da página {page_num + 1} por favor aguarde.")
 
     print("Script finalizado!")
-    return topics
+    return list(filter(lambda topic: bool(topic), topics))
 
 
-def create_excel_file():
-    topics = get_oficial_diare()
-    tabela = pd.read_excel(EXCEL_FILE)
+def count_words(array) -> str:
+    dicionario = {}
+    for palavra in array:
+        if palavra not in dicionario:
+            dicionario[palavra] = 1
+        else:
+            dicionario[palavra] += 1
+    return str(dicionario)
 
+
+def generate_log() -> None:
+    # Cria um log para cada execução do código
+    log = open("./log/log.txt", "a")
+    log.write(f"- Log: {datetime.today():%d/%m/%Y %H:%M:%S} ")
+
+
+def excel_report() -> None:
+    topics = get_oficial_diare_data()
+    tabela = pd.read_excel(common_data["EXCEL_FILE"])
+
+    # Percorre o array de tópicos e adiciona dados na tabela do excel
     for index, topic in enumerate(topics):
         for value in topic.items():
             tabela.loc[index, "Diário Oficial"] = "Cidade do Rio de Janeiro"
@@ -182,19 +189,11 @@ def create_excel_file():
             ] = count_words(", ".join(value[1]).split())
             tabela.loc[
                 index, "Data de execução"
-            ] = f"{datetime.today():%Y%m%d}"
-    tabela.to_excel(EXCEL_FILE, index=False)
+            ] = f"{datetime.today():%Y_%m_%d_%H_%M_%S}"
+
+    tabela.to_excel(EXCEL_FILE_OUTPUT, index=False)
+    generate_log()
     os.remove(PDF_FILE)
 
 
-def count_words(array):
-    dicionario = {}
-    for palavra in array:
-        if palavra not in dicionario:
-            dicionario[palavra] = 1
-        else:
-            dicionario[palavra] += 1
-    return str(dicionario)
-
-
-create_excel_file()
+excel_report()
