@@ -3,7 +3,9 @@ flake8
 pandas
 pypdf2
 pdfminer
+pdfminer.six
 selenium
+openpyxl
 beautifulsoup4
 pytest
 
