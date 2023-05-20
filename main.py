@@ -13,6 +13,7 @@ from pdfminer.pdfpage import PDFPage
 
 # Importações para trabalhar com o scraping
 from selenium import webdriver
+import chromedriver_autoinstaller
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from bs4 import BeautifulSoup
@@ -40,9 +41,9 @@ def get_oficial_diare_data() -> list:
 
     # Altera o diretório de download padrão
     options = Options()
-    options.add_argument('--ignore-certificate-errors')
-    options.add_argument('--ignore-ssl-errors=yes')
-    options.add_argument('--start-maximized')
+    options.add_argument("--ignore-certificate-errors")
+    options.add_argument("--ignore-ssl-errors=yes")
+    options.add_argument("--start-maximized")
 
     options.add_experimental_option(
         "prefs",
@@ -55,7 +56,8 @@ def get_oficial_diare_data() -> list:
     )
 
     # Instancia o navegador
-    browser = webdriver.Remote("http://localhost:4444/wd/hub", options=options)
+    chromedriver_autoinstaller.install()
+    browser = webdriver.Chrome(options=options)
     browser.get(common_data["URL"])
 
     browser.find_element(By.ID, "imagemCapa").click()
