@@ -1,13 +1,49 @@
-# Desafio GoLive Tech
 
-Passo 1
-Ativar ambiente virtual python3 -m venv .venv && source .venv/bin/activate
+# :globe_with_meridians: Desafio GoLive Tech
 
-Passo 2
-Instalar dependencias python3 -m pip install -r requirements.txt
+# Orientações
 
-Passo 3
-Rodar o docker docker-compose up -d
+- *Clonar o repositório:*
 
-Passo 4
-Rodar a aplicação python3 main.py
+```
+$ git clone git@github.com:mathews-r/desafio-golive.git
+```
+
+- *Acessar o projeto desafio-golive:*
+
+```
+$ cd desafio-golive
+```
+- *Criar o ambiente de virtual:*
+
+```
+$ python3 -m venv .venv && source .venv/bin/activate
+```
+
+- *Instalar as dependências:*
+
+```
+$ python3 -m pip install -r requirements.txt
+```
+
+- *Rodar o docker:*
+```
+docker-compose up -d
+
+```
+
+- *Executar o código:*
+```
+python3 main.py
+
+```
+
+- *Testar (opcional):*
+```
+python3 -m pytest
+
+```
+
+## 👨‍💻 Desenvolvedor
+
+- [Mathews Rodrigues](https://www.linkedin.com/in/mathewsrodrigues/)
