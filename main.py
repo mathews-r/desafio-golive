@@ -1,6 +1,6 @@
 import os
 
-# import pandas as pd
+import pandas as pd
 from time import sleep
 from datetime import datetime
 
@@ -28,9 +28,10 @@ common_data = {
 PDF_FILE = (
     f"./oficial_diare/rio_de_janeiro_{common_data['date_pdf']}_completo.pdf"
 )
+EXCEL_FILE = f"excel/Diário_Oficial_Cidade_RJ_{common_data['date_excel']}.xlsx"
 
 
-def get_oficial_diare() -> None:
+def get_oficial_diare():
     # Diretório para download do arquivo
     download_dir = (
         f"{os.path.dirname(os.path.realpath(__file__))}/oficial_diare"
@@ -84,14 +85,6 @@ def pdf_to_html(pdf_path, html_path) -> None:
 
 # 2 - {'atos': 1, 'do': 1, 'prefeito': 1}
 
-# tabela = pd.read_excel(
-#     f"excel/Diário_Oficial_Cidade_RJ_{common_data['date_excel']}.xlsx"
-# )
-# tabela.to_excel(
-#     f"excel/Diário_Oficial_Cidade_RJ_{common_data['date_excel']}.xlsx",
-#     index=False,
-# )
-
 
 def get_topics(html_path):
     with open(html_path, "r") as file:
@@ -113,11 +106,12 @@ def get_topics(html_path):
     # Percorre a lista de tópicos e retorna um dicionário no padrão
 
     topic_dict = {}
+    topic_list = []
 
     for topic in topics:
-        topic_list = []
-        topic_list.append(topic.text.rstrip())
-        topic_dict[page.text.rstrip()] = topic_list
+        if topics != []:
+            topic_list.append(topic.text.rstrip())
+            topic_dict[page.text.rstrip()] = topic_list
 
     os.remove(html_path)
     return topic_dict
@@ -165,12 +159,42 @@ def dismember_pdf(pdf_file):
             get_topics("{0}_page{1}.html".format(file_base_name, page_num + 1))
         )
 
-        with open("./excel/pdf_text.txt", "w", encoding="utf-8") as txt_file:
-            txt_file.write(str(topics))
-        print(f"Extraindo dados da página {page_num} por favor aguarde.")
+        print(f"Extraindo dados da página {page_num + 1} por favor aguarde.")
 
     print("Script finalizado!")
     return topics
 
 
-get_oficial_diare()
+def create_excel_file():
+    topics = get_oficial_diare()
+    tabela = pd.read_excel(EXCEL_FILE)
+
+    for index, topic in enumerate(topics):
+        for value in topic.items():
+            tabela.loc[index, "Diário Oficial"] = "Cidade do Rio de Janeiro"
+            tabela.loc[index, "Títulos Principais"] = ", ".join(value[1])
+            tabela.loc[index, "Páginas"] = len(topics)
+            tabela.loc[index, "Contagem Total de Títulos da Página"] = len(
+                value[1]
+            )
+            tabela.loc[
+                index, "Contagem de Palavras dos Títulos "
+            ] = count_words(", ".join(value[1]).split())
+            tabela.loc[
+                index, "Data de execução"
+            ] = f"{datetime.today():%Y%m%d}"
+    tabela.to_excel(EXCEL_FILE, index=False)
+    os.remove(PDF_FILE)
+
+
+def count_words(array):
+    dicionario = {}
+    for palavra in array:
+        if palavra not in dicionario:
+            dicionario[palavra] = 1
+        else:
+            dicionario[palavra] += 1
+    return str(dicionario)
+
+
+create_excel_file()
