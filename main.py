@@ -186,7 +186,7 @@ def excel_report() -> None:
         for value in topic.items():
             tabela.loc[index, "Diário Oficial"] = "Cidade do Rio de Janeiro"
             tabela.loc[index, "Títulos Principais"] = ", ".join(value[1])
-            tabela.loc[index, "Páginas"] = len(topics)
+            tabela.loc[index, "Páginas"] = value[0]
             tabela.loc[index, "Contagem Total de Títulos da Página"] = len(
                 value[1]
             )
