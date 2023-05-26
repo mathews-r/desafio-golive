@@ -5,11 +5,9 @@ from time import sleep
 from datetime import datetime
 
 # Importações para trabalhar com PDF
+from pdf_to_html import pdf_to_html
 from PyPDF2 import PdfReader, PdfWriter
-from pdfminer.converter import HTMLConverter
-from pdfminer.layout import LAParams
-from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
-from pdfminer.pdfpage import PDFPage
+
 
 # Importações para trabalhar com o scraping
 from selenium import webdriver
@@ -18,21 +16,8 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from bs4 import BeautifulSoup
 
-
 # Dados comuns
-common_data = {
-    "date_excel": f"{datetime.today():%Y%m%d}",
-    "date_pdf": f"{datetime.today():%Y-%m-%d}",
-    "URL": "https://doweb.rio.rj.gov.br/",
-    "EXCEL_FILE": "data_excel/Diário_Oficial_Cidade_RJ.xlsx",
-}
-
-PDF_FILE = (
-    f"./oficial_diare/rio_de_janeiro_{common_data['date_pdf']}_completo.pdf"
-)
-EXCEL_FILE_OUTPUT = (
-    f"data_excel/Diário_Oficial_Cidade_RJ_{common_data['date_excel']}.xlsx"
-)
+from common_data import EXCEL_FILE_OUTPUT, common_data, PDF_FILE
 
 
 def get_oficial_diare_data() -> list:
@@ -66,26 +51,6 @@ def get_oficial_diare_data() -> list:
     sleep(4)
 
     return dismember_pdf(PDF_FILE)
-
-
-def pdf_to_html(pdf_path, html_path) -> None:
-    # Cria um arquivo HTML com configurações padrões
-    with open(html_path, "wb") as html_file:
-        resource_manager = PDFResourceManager()
-        codec = "utf-8"
-        laparams = LAParams()
-        converter = HTMLConverter(
-            resource_manager, html_file, codec=codec, laparams=laparams
-        )
-
-        with open(pdf_path, "rb") as pdf_file:
-            interpreter = PDFPageInterpreter(resource_manager, converter)
-
-            # Converte cada página do PDF para HTML
-            for page in PDFPage.get_pages(pdf_file):
-                interpreter.process_page(page)
-
-    os.remove(pdf_path)
 
 
 def get_topics(html_path, page_num) -> dict:
